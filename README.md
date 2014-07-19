@@ -8,7 +8,7 @@ Everything can and should be streamed. This library is an attempt to make standa
 ## Highlights
 
 ### `Streamz.merge/1`
-`Streamz.merge/1` accepts an array of streams and merges them into a single stream. This differs from Stream.zip/2 in that the resulting order is a function of execution order rather than alternating.
+`Streamz.merge/1` accepts an array of streams and merges them into a single stream. This differs from `Stream.zip/2` in that the resulting order is a function of execution order rather than simply alternating between the two streams.
 
 #### Merge two GenEvent streams and take the first 100 events from either
 
@@ -55,7 +55,7 @@ There are tons of possibilities for Streamz. Here's what's on the current radar.
 - `Streamz.Net.TCPServer/1` - A server version of `Streamz.Net.TCPClient`
 - `Streamz.Net.UDPClient/1` - A UDP version of `Streamz.Net.TCPClient`
 - `Streamz.Net.UDPServer/1` - A server version of `Streamz.Net.TCPClient`
-- `Streamz.Task.stream/1` - Accepts an array of functions and streams the result of the functionsin the order of completion.
+- `Streamz.Task.stream/1` - Accepts an array of functions and streams the result of the functions in the order of completion.
 
 More ideas are welcome.
 
