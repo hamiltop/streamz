@@ -21,12 +21,12 @@ combined_stream = Streamz.merge [
 combined_stream |> Enum.take(100)
 ```
 
-`Streamz.Net.TCPStream.stream/1` accepts a keyword list with `:host` and `:port` set. It will connect the the host and port and supports Enumerable and Collectable. This enables a bunch of cool things.
+`Streamz.Net.TCPClient.stream/1` accepts a keyword list with `:host` and `:port` set. It will connect the the host and port and supports Enumerable and Collectable. This enables a bunch of cool things.
 
 ### Connecting:
 
 ```elixir
-n = Streamz.Net.TCPStream.stream([host: "localhost", port: 4444])
+n = Streamz.Net.TCPClient.stream([host: "localhost", port: 4444])
 ```
 
 ### Reading data:
@@ -47,4 +47,15 @@ n |> Enum.each &IO.inspect(&1)
 n |> Enum.into(n)
 ```
 
-This is largely a playground at the moment, but the plan is to get this mature enough to be used in production.
+## Up Next
+There are tons of possibilities for Streamz. Here's what's on the current radar.
+
+- `Streamz.Net.TCPServer/1` - A server version of `Streamz.Net.TCPClient`
+- `Streamz.Net.UDPClient/1` - A UDP version of `Streamz.Net.TCPClient`
+- `Streamz.Net.UDPServer/1` - A server version of `Streamz.Net.TCPClient`
+- `Streamz.Task.stream/1` - Accepts an array of functions and streams the result of the functionsin the order of completion.
+
+More ideas are welcome.
+
+## Production readiness
+This is largely a playground at the moment, but the plan is to get this mature enough to be used in production. Some more tests and a bit more use will help with stability and my ability to commit to the APIs of the library.

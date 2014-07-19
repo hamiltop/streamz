@@ -1,4 +1,4 @@
-defmodule Streamz.Net.TCP do
+defmodule Streamz.Net.TCPClient do
   defstruct socket: nil
 
   def stream(options) do
