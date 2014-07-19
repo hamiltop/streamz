@@ -50,14 +50,15 @@ n |> Enum.into(n)
 ```
 
 ## Up Next
-There are tons of possibilities for Streamz. Here's what's on the current radar.
+There are tons of possibilities for Streamz. Here's what is on the current radar.
 
 - `Streamz.Net.TCPServer/1` - A server version of `Streamz.Net.TCPClient`
 - `Streamz.Net.UDPClient/1` - A UDP version of `Streamz.Net.TCPClient`
-- `Streamz.Net.UDPServer/1` - A server version of `Streamz.Net.TCPClient`
+- `Streamz.Net.UDPServer/1` - A server version of `Streamz.Net.UDPClient`
 - `Streamz.Task.stream/1` - Accepts an array of functions and streams the result of the functions in the order of completion.
+- `Streamz.WebSockets.stream/1` - Bidirection stream for a websocket connection.
 
-More ideas are welcome.
+More ideas are welcome. Feedback on code quality is welcomed, especially when it comes to OTP fundamentals (eg. monitoring vs linking).
 
 ## Production readiness
 This is largely a playground at the moment, but the plan is to get this mature enough to be used in production. Some more tests and a bit more use will help with stability and my ability to commit to the APIs of the library.
