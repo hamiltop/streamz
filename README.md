@@ -7,9 +7,10 @@ Everything can and should be streamed. This library is an attempt to make standa
 
 ## Highlights
 
+### `Streamz.merge/1`
 `Streamz.merge/1` accepts an array of streams and merges them into a single stream. This differs from Stream.zip/2 in that the resulting order is a function of execution order rather than alternating.
 
-### Merge two GenEvent streams and take the first 100 events from either
+#### Merge two GenEvent streams and take the first 100 events from either
 
 ```elixir
 {:ok, event_one} = GenEvent.start_link
@@ -21,27 +22,28 @@ combined_stream = Streamz.merge [
 combined_stream |> Enum.take(100)
 ```
 
+### `Streamz.Net.TCPClient.stream/1`
 `Streamz.Net.TCPClient.stream/1` accepts a keyword list with `:host` and `:port` set. It will connect the the host and port and supports Enumerable and Collectable. This enables a bunch of cool things.
 
-### Connecting:
+#### Connecting:
 
 ```elixir
 n = Streamz.Net.TCPClient.stream([host: "localhost", port: 4444])
 ```
 
-### Reading data:
+#### Reading data:
 
 ```elixir
 n |> Enum.each &IO.inspect(&1)
 ```
 
-### Writing data:
+#### Writing data:
 
 ```elixir
 ["Hello", "World"] |> Enum.into(n)
 ```
 
-### Echo Client (writes any data it receives back to the server):
+#### Echo Client (writes any data it receives back to the server):
 
 ```elixir
 n |> Enum.into(n)
