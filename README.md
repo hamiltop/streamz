@@ -22,6 +22,29 @@ combined_stream = Streamz.merge [
 combined_stream |> Enum.take(100)
 ```
 
+### `Streamz.Task.stream/1`
+`Streamz.Task.stream/1` accepts an array of functions and launches them all as Tasks. The returned stream will emit the results of the Tasks in the order in which execution completes.
+
+```elixir
+stream = Streamz.Task.stream [
+  fn ->
+    :timer.sleep(10)
+    1
+  end, 
+  fn -> 2 end
+]
+result = stream |> Enum.to_list
+assert result == [2,1]
+```
+
+This enables a lot of cool functionality, such as processing just the first response:
+
+```elixir
+result = stream |> Enum.take(1) |> hd
+```
+
+The above example is so useful it exists as `Streamz.Task.first_completed_of/1`
+
 ### `Streamz.Net.TCPClient.stream/1`
 `Streamz.Net.TCPClient.stream/1` accepts a keyword list with `:host` and `:port` set. It will connect the the host and port and supports Enumerable and Collectable. This enables a bunch of cool things.
 
