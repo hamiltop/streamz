@@ -78,7 +78,6 @@ There are tons of possibilities for Streamz. Here's what is on the current radar
 - `Streamz.Net.TCPServer/1` - A server version of `Streamz.Net.TCPClient`
 - `Streamz.Net.UDPClient/1` - A UDP version of `Streamz.Net.TCPClient`
 - `Streamz.Net.UDPServer/1` - A server version of `Streamz.Net.UDPClient`
-- `Streamz.Task.stream/1` - Accepts an array of functions and streams the result of the functions in the order of completion.
 - `Streamz.WebSockets.stream/1` - Bidirection stream for a websocket connection.
 
 More ideas are welcome. Feedback on code quality is welcomed, especially when it comes to OTP fundamentals (eg. monitoring vs linking).
