@@ -1,4 +1,4 @@
-defmodule CompoundStreamTest do
+defmodule MergeTest do
   use ExUnit.Case
 
   test "infinite streams" do
@@ -47,5 +47,4 @@ defmodule CompoundStreamTest do
     results = Task.await(task)
     assert results == [1,2,3,4,5,6,7,8,9,10]
   end
-  
 end
