@@ -5,17 +5,21 @@ defmodule Streamz.Task.TaskStream do
 
   @spec start_link(Enumerable.t) :: %__MODULE__{}
   def start_link(funs) do
+    {:ok, sup} = Task.Supervisor.start_link()
+
     pid = spawn_link fn ->
-      task_refs = launch_tasks(funs)
+      task_refs = launch_tasks(sup, funs)
                   |> Enum.map(fn(task) -> task.ref end)
                   |> Enum.into HashSet.new
+
       wait_for_request(task_refs)
+      
     end
     %__MODULE__{pid: pid}
   end
 
-  @spec launch_tasks(Enumerable.t) :: Enumerable.t
-  defp launch_tasks(funs), do: Enum.map(funs, &Task.async/1)
+  @spec launch_tasks(atom, Enumerable.t) :: Enumerable.t
+  defp launch_tasks(pid, funs), do: Enum.map(funs, fn(fun) -> Task.Supervisor.async(pid, fun) end)
 
   @spec wait_for_request(Enumerable.t) :: term
   defp wait_for_request(refs) do
