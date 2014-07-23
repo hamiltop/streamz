@@ -9,6 +9,20 @@ defmodule Streamz do
   Creates a composite stream. The stream emits values from the underlying streams, in the
   order they are produced. This differs from `Stream.zip/2`, where the order of values is
   strictly alternating between the source streams.
+
+    iex(1)> s1 = Stream.repeatedly fn ->
+    ...(1)>   :timer.sleep(100)
+    ...(1)>   :slow
+    ...(1)> end
+    #Function<18.77372642/2 in Stream.repeatedly/1>
+    iex(2)> s2 = Stream.repeatedly fn ->
+    ...(2)>   :timer.sleep(40)
+    ...(2)>   :fast
+    ...(2)> end
+    #Function<18.77372642/2 in Stream.repeatedly/1>
+    iex(3)> Streamz.merge([s1,s2]) |> Enum.take(3)
+    [:fast, :fast, :slow]
+
   """
   @spec merge([Enumerable.t]) :: Enumerable.t
   def merge(streams) do

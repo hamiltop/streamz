@@ -1,6 +1,8 @@
 defmodule StreamzTest do
   use ExUnit.Case
 
+  doctest Streamz
+
   test "take_until/2" do
     {:ok, event_one} = GenEvent.start_link
     {:ok, event_two} = GenEvent.start_link
