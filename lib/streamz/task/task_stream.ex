@@ -18,7 +18,7 @@ defmodule Streamz.Task.TaskStream do
     %__MODULE__{pid: pid}
   end
 
-  @spec launch_tasks(atom, Enumerable.t) :: Enumerable.t
+  @spec launch_tasks(pid, Enumerable.t) :: Enumerable.t
   defp launch_tasks(pid, funs), do: Enum.map(funs, fn(fun) -> Task.Supervisor.async(pid, fun) end)
 
   @spec wait_for_request(Enumerable.t) :: term
