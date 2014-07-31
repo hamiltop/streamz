@@ -2,16 +2,28 @@ defmodule GroupedIntegrationTest do
   use ExUnit.Case
 
   test "do it" do
-    stream = [1,2,3,4,5]
-    {:ok, config } = GroupedStreamConfig.start_link
-    {:ok, consumer} = StreamConsumer.start_link(stream, fn(el) -> rem(el, 3) end, config)
-    {:ok, grouped} = GroupedStream.start_link(consumer, config, 1)
-    {:ok, grouped2} = GroupedStream.start_link(consumer, config, 2)
-    assert [
-      GroupedStream.next(grouped),
-      GroupedStream.next(grouped),
-      GroupedStream.next(grouped2),
-      GroupedStream.next(grouped2)
-    ] == [1,3,2,4]
+    {:ok, s} = GenEvent.start_link
+    stream = GenEvent.stream(s)
+    g = Streamz.group_by(stream, fn (el) -> rem(el, 5) end)
+    spawn_link fn ->
+      g[1] |> Enum.each fn(el) ->
+        IO.puts "Got #{el}"
+      end
+    end
+    spawn_link fn ->
+      g[0] |> Enum.each fn(el) ->
+        :timer.sleep(100)
+        IO.puts "Also Got #{el}"
+      end
+    end
+    :timer.sleep(1000)
+    GenEvent.notify(s, 0)
+    GenEvent.notify(s, 1)
+    GenEvent.notify(s, 2)
+    GenEvent.notify(s, 3)
+    GenEvent.notify(s, 4)
+    GenEvent.notify(s, 5)
+    GenEvent.notify(s, 6)
+    :timer.sleep(1000)
   end
 end

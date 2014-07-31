@@ -41,4 +41,8 @@ defmodule Streamz do
     Streamz.merge([stream, wrapped_cutoff])
       |> Stream.take_while &( &1 != ref )
   end
+
+  def group_by(stream, fun) do
+    GroupBy.launch(stream, fun)
+  end
 end

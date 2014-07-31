@@ -1,8 +1,8 @@
 defmodule GroupedStream do
   use GenServer
 
-  def start_link(source, config, key, opts \\ []) do
-    GenServer.start_link(__MODULE__, [source: source, config: config, key: key], opts)
+  def start_link(stream, key, opts \\ []) do
+    GenServer.start_link(__MODULE__, [source: stream.consumer, config: stream.config, key: key], opts)
   end
 
   def next(pid) do
