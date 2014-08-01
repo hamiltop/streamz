@@ -20,10 +20,14 @@ defmodule GroupBy do
   end
 
   def next(pid) do
-    {GroupedStream.next(pid), pid}
+    case GroupedStream.next(pid) do
+      {:data, data} -> {data, pid}
+      :done -> nil
+    end
   end
 
   def stop(pid) do
+    GroupedStream.stop(pid) 
   end
 end
 
