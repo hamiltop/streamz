@@ -16,6 +16,6 @@ defmodule TimeTest do
       stream |> Enum.to_list
     end
     result = Task.await(task, 150)
-    assert result = [:ok]
+    assert result == [:ok]
   end
 end

@@ -2,6 +2,7 @@ defmodule Streamz.Merge.Collector do
   @moduledoc false
   use GenServer
 
+  # Client
   def start_link(streams) do
     GenServer.start_link(__MODULE__, streams)
   end
@@ -22,14 +23,11 @@ defmodule Streamz.Merge.Collector do
     GenServer.call(pid, :stop)
   end
 
-  # GenServer callbacks
+
+  # Server
   def init(streams) do
     stream_pids = Enum.map(streams, &start_substream(&1, self))
     {:ok, %{producers: [], consumers: [], streams: stream_pids}}
-  end
-
-  def handle_call({:set_streams, streams}, _from, state = %{streams: []}) do
-    {:reply, :ok, %{state | streams: streams}}
   end
 
   def handle_call(:stop, _from, state) do
