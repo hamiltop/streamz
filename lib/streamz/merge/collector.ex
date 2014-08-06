@@ -23,10 +23,18 @@ defmodule Streamz.Merge.Collector do
     GenServer.call(pid, :stop)
   end
 
-
   # Server
   def init(streams) do
-    stream_pids = Enum.map(streams, &start_substream(&1, self))
+    collector = self
+    # launch all the substream processes
+    stream_pids = streams |> Enum.map fn(stream) ->
+      spawn_link fn ->
+        stream |> Enum.each fn(value) ->
+          Streamz.Merge.Collector.send_value(collector, value)
+        end
+        Streamz.Merge.Collector.send_done(collector)
+      end
+    end
     {:ok, %{producers: [], consumers: [], streams: stream_pids}}
   end
 
@@ -68,16 +76,5 @@ defmodule Streamz.Merge.Collector do
       state.consumers |> Enum.each &GenServer.reply(&1, :done)
     end
     {:reply, :ok, %{state | :streams => streams}}
-  end
- 
-  # private methods 
-  @spec start_substream(Enumerable.t, pid) :: pid
-  defp start_substream(stream, collector) do
-    spawn_link fn ->
-      stream |> Enum.each fn(value) ->
-        Streamz.Merge.Collector.send_value(collector, value)
-      end
-      Streamz.Merge.Collector.send_done(collector)
-    end
   end
 end
