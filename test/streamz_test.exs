@@ -19,25 +19,26 @@ defmodule StreamzTest do
   end
 
   test "combine_latest/2" do
-    left = Stream.cycle([
-      %{:color => "red", :shape => "triangle"},
-      %{:color => "blue", :shape => "triangle"},
-      %{:color => "green", :shape => "diamond"}
-    ])
+    {:ok, left_event} = GenEvent.start_link
+    {:ok, right_event} = GenEvent.start_link
+    left_stream = GenEvent.stream(left_event)
+    right_stream = GenEvent.stream(right_event)
 
-    right = Stream.cycle([
-      %{:color => "yellow", :shape => "square"},
-      %{:color => "red", :shape => "circle"},
-      %{:color => "orange", :shape => "square"}
-    ])
+    combined = Task.async fn ->
+      Streamz.combine_latest(left_stream, right_stream)
+      |> Stream.map(fn {a,b} -> %{:color => a.color, :shape => b.shape} end)
+      |> Enum.take(4)
+    end
 
-    combined = Streamz.combine_latest(left,right)
+    :timer.sleep(10)
 
-    result = combined
-    |> Stream.map(fn({a,b}) -> %{:color => a.color, :shape => b.shape} end)
-    |> Enum.take(4)
+    GenEvent.sync_notify(left_event, %{:color => "red", :shape => "triangle"})
+    GenEvent.sync_notify(right_event, %{:color => "yellow", :shape => "square"})
+    GenEvent.sync_notify(left_event, %{:color => "blue", :shape => "triangle"})
+    GenEvent.sync_notify(right_event, %{:color => "red", :shape => "circle"})
+    GenEvent.sync_notify(left_event, %{:color => "green", :shape => "rectangle"})
 
-    assert result == [
+    assert Task.await(combined) == [
       %{color: "red", shape: "square"},
       %{color: "blue", shape: "square"},
       %{color: "blue", shape: "circle"},
