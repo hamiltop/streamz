@@ -41,4 +41,24 @@ defmodule Streamz do
     Streamz.merge([stream, wrapped_cutoff])
       |> Stream.take_while &( &1 != ref )
   end
+
+  @doc """
+  Takes two streams and creates a combined stream of form {left, right} using the most recent
+  elements emitted by the two input streams. No elements are emitted from the returned stream
+  until both input streams have emitted elements.
+  """
+  @spec combine_latest(Enumerable.t, Enumerable.t) :: Enumerable.t
+  def combine_latest(stream1, stream2) do
+    left = Stream.map(stream1, &({:left, &1}))
+    right = Stream.map(stream2, &({:right, &1}))
+    Streamz.merge([left, right])
+    |> Stream.scan({nil,nil}, fn(el, {left, right}) ->
+      case el do
+        {:left,_} -> {el,right}
+        {:right,_} -> {left,el}
+      end
+    end)
+    |> Stream.drop_while(fn {a,b} -> a == nil or b == nil end)
+    |> Stream.map(fn {{_,a},{_,b}} -> {a,b} end)
+  end
 end
