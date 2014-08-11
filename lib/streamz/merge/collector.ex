@@ -8,7 +8,8 @@ defmodule Streamz.Merge.Collector do
   end
 
   def send_value(pid, value) do
-    GenServer.call(pid, {:value, value}, :infinity)
+    {:ack, target} = GenServer.call(pid, :value, :infinity)
+    GenServer.reply(target, {:value, value})
   end
 
   def send_done(pid) do
@@ -50,19 +51,17 @@ defmodule Streamz.Merge.Collector do
     {:noreply, %{state | :consumers => state.consumers ++ [from]}}
   end
 
-  def handle_call(:get, _from, state = %{producers: [h | t]}) do
-    {producer, value} = h
-    GenServer.reply(producer, :ack)
-    {:reply, {:value, value}, %{state | :producers => t}}
+  def handle_call(:get, from, state = %{producers: [h | t]}) do
+    GenServer.reply(h, {:ack, from})
+    {:noreply, %{state | :producers => t}}
   end
 
-  def handle_call({:value, value}, from, state = %{consumers: []}) do
-    {:noreply, %{state | :producers => state.producers ++ [{from, value}]}}
+  def handle_call(:value, from, state = %{consumers: []}) do
+    {:noreply, %{state | :producers => state.producers ++ [from]}}
   end
 
-  def handle_call({:value, value}, _from, state = %{consumers: [h | t]}) do
-    GenServer.reply(h,{:value, value})
-    {:reply, :ack, %{state | :consumers => t}}
+  def handle_call(:value, _from, state = %{consumers: [h | t]}) do
+    {:reply, {:ack, h}, %{state | :consumers => t}}
   end
 
   def handle_call(:done, {pid, _ref}, state = %{consumers: []}) do
