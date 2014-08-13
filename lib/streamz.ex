@@ -71,8 +71,7 @@ defmodule Streamz do
           0 -> count
         end
       end
-      total = fun1.(fun1, 0)
-      IO.puts "Cleaned #{total} messages"
+      fun1.(fun1, 0)
     end
   end
 end
