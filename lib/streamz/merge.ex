@@ -11,7 +11,9 @@ defmodule Streamz.Merge do
     )
   end
 
-  #@spec start_stream([Enumerable.t]) :: pid
+  @type merge_resource :: {reference, [pid]}
+
+  @spec start_stream([Enumerable.t]) :: merge_resource
   defp start_stream(streams) do
     ref = make_ref
     parent = self
@@ -26,7 +28,7 @@ defmodule Streamz.Merge do
     {ref, pids}
   end
 
-  #@spec next(pid) :: {term, pid} | nil
+  @spec next(merge_resource) :: {term, merge_resource} | nil
   defp next({_, []}) do
     nil
   end
@@ -43,7 +45,7 @@ defmodule Streamz.Merge do
     end
   end
 
-  #@spec stop(pid) :: true
+  @spec stop(merge_resource) :: :ok
   defp stop({ref, streams}) do
     streams |> Enum.each fn(stream) ->
       mref = Process.monitor(stream)
@@ -54,5 +56,6 @@ defmodule Streamz.Merge do
       end
     end
     Streamz.clear_mailbox({'$merge', _, {^ref, _}})
+    :ok
   end
 end
