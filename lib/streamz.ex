@@ -61,4 +61,18 @@ defmodule Streamz do
     |> Stream.drop_while(fn {a,b} -> a == nil or b == nil end)
     |> Stream.map(fn {{_,a},{_,b}} -> {a,b} end)
   end
+
+  defmacro clear_mailbox(pattern) do
+    quote do
+      fun1 = fn(fun2, count) ->
+        receive do
+          unquote(pattern) -> fun2.(fun2, count+1)
+        after
+          0 -> count
+        end
+      end
+      total = fun1.(fun1, 0)
+      IO.puts "Cleaned #{total} messages"
+    end
+  end
 end

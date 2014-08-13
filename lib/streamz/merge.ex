@@ -1,6 +1,8 @@
 defmodule Streamz.Merge do
   @moduledoc false
 
+  require Streamz
+
   def build_merge_stream(streams) do
     Stream.resource(
       fn -> start_stream(streams) end,
@@ -9,22 +11,48 @@ defmodule Streamz.Merge do
     )
   end
 
-  @spec start_stream([Enumerable.t]) :: pid
+  #@spec start_stream([Enumerable.t]) :: pid
   defp start_stream(streams) do
-    {:ok, collector} = Streamz.Merge.Collector.start_link(streams)
-    collector
+    ref = make_ref
+    parent = self
+    pids = streams |> Enum.map fn (stream) ->
+      spawn_link fn ->
+        stream |> Enum.each fn (el) ->
+          {:ok, :ack} = :gen.call(parent, '$merge', {ref, {:value, el}}, :infinity)
+        end
+        {:ok, :ack} = :gen.call(parent, '$merge', {ref, :done}, :infinity)
+      end
+    end
+    {ref, pids}
   end
 
-  @spec next(pid) :: {term, pid} | nil
-  defp next(collector) do
-    case Streamz.Merge.Collector.get_value(collector) do
-      {:value, value} -> {value, collector}
-      :done -> nil
+  #@spec next(pid) :: {term, pid} | nil
+  defp next({_, []}) do
+    nil
+  end
+  defp next({ref, streams}) do
+    receive do
+      {'$merge', {pid, _} = from, {^ref, value}} ->
+        case value do
+          {:value, value} ->
+            :gen.reply from, :ack
+            {value, {ref, streams}}
+          :done ->
+            next({ref , List.delete(streams, pid)})
+        end
     end
   end
 
-  @spec stop(pid) :: true
-  defp stop(collector) do
-    Streamz.Merge.Collector.stop(collector)
+  #@spec stop(pid) :: true
+  defp stop({ref, streams}) do
+    streams |> Enum.each fn(stream) ->
+      mref = Process.monitor(stream)
+      Process.unlink(stream)
+      Process.exit(stream, :kill)
+      receive do
+        {:DOWN, ^mref, _, _, :killed} ->
+      end
+    end
+    Streamz.clear_mailbox({'$merge', _, {^ref, _}})
   end
 end
