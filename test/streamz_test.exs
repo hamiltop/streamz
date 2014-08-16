@@ -45,4 +45,18 @@ defmodule StreamzTest do
       %{color: "green", shape: "circle"}
     ]
   end
+
+  test "once/1" do
+    s = Streamz.once fn ->
+      :foo
+    end
+    assert Enum.take(s,2) == [:foo]
+  end
+
+  test "take_and_continue/3" do
+    s = 1..100 |> Streamz.take_and_continue(10, fn(list) ->
+      assert list == Enum.to_list(1..10)
+    end) |> Enum.take(10)
+    assert s == Enum.to_list(11..20)
+  end
 end

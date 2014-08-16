@@ -24,7 +24,7 @@ defmodule Streamz do
     [:fast, :fast, :slow]
 
   """
-  @spec merge([Enumerable.t]) :: Enumerable.t
+  @spec merge(Enumerable.t) :: Enumerable.t
   def merge(streams) do
     Streamz.Merge.build_merge_stream(streams)
   end
@@ -61,7 +61,47 @@ defmodule Streamz do
     |> Stream.drop_while(fn {a,b} -> a == nil or b == nil end)
     |> Stream.map(fn {{_,a},{_,b}} -> {a,b} end)
   end
+  
+  @doc """
+  Creates a stream that emits one element.
+  
+  The element is the result of executing the passed in function.
 
+    iex(1)> Streamz.once(fn -> "foo" end) |> Enum.take(2)
+    ["foo"]
+
+  """
+  @spec once(fun) :: Enumerable.t
+  def once(fun) do
+    Stream.unfold true, fn
+      (true) -> {fun.(), false}
+      (false) -> nil
+    end
+  end
+
+  @doc """
+  Take `n` elements and pass them into the given function before continuing to enumerate the stream.
+
+  iex(1)> 1..100 |> Streamz.take_and_continue(5, &IO.inspect/1) |> Enum.take(10)
+  [1, 2, 3, 4, 5]
+  [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+  """
+  @spec take_and_continue(Enumerable.t, non_neg_integer, (Enumerable.t -> term)) :: Enumerable.t
+  def take_and_continue(stream, count, fun) do
+    stream |> Stream.transform [], fn
+      (el, acc) when is_list(acc) and length(acc) == count ->
+        fun.(Enum.reverse(acc))
+        {[el], nil}
+      (el, nil) ->
+        {[el], nil}
+      (el, acc) ->
+        {[], [el | acc]}
+    end
+  end
+
+  @doc """
+  A helper macro for clearing out messages that match a certain pattern from an inbox.
+  """
   defmacro clear_mailbox(pattern) do
     quote do
       fun1 = fn(fun2, count) ->
