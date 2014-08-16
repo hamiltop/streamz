@@ -1,6 +1,8 @@
 defmodule Streamz.Merge do
   @moduledoc false
 
+  defstruct streams: []
+
   require Streamz
 
   defmodule State do
@@ -26,9 +28,13 @@ defmodule Streamz.Merge do
     end
   end
 
-  def build_merge_stream(streams) do
+  def new(streams) do
+    %__MODULE__{streams: streams}
+  end
+
+  def build_merge_stream(stream) do
     Stream.resource(
-      fn -> start_stream(streams) end,
+      fn -> start_stream(stream.streams) end,
       &next/1,
       &stop/1
     )
@@ -42,15 +48,10 @@ defmodule Streamz.Merge do
     parent = self
     agent = State.new
     spawn_link fn ->
-      pids = streams |> Enum.map fn (stream) ->
-        spawn_link fn ->
-          stream |> Enum.each fn (el) ->
-            {:ok, :ack} = :gen.call(parent, '$merge', {ref, {:value, el}}, :infinity)
-          end
-          {:ok, :ack} = :gen.call(parent, '$merge', {ref, :done}, :infinity)
-        end
+      ids = streams |> Enum.flat_map fn (stream) ->
+        Mergeable.merge(stream, parent, ref)
       end
-      State.set_sources(agent, pids)
+      State.set_sources(agent, ids)
     end
     {ref, agent}
   end
@@ -58,14 +59,14 @@ defmodule Streamz.Merge do
   @spec next(merge_resource) :: {term, merge_resource} | nil
   defp next({ref, agent}) do
     receive do
-      {'$merge', {pid, _} = from, {^ref, value}} ->
+      {'$merge', from, {^ref, value}} ->
         case value do
           {:value, value} ->
             :gen.reply from, :ack
             {value, {ref, agent}}
-          :done ->
+          {:done, id} ->
             :gen.reply from, :ack
-            case State.add_completed_and_check_state(agent, pid) do
+            case State.add_completed_and_check_state(agent, id) do
               true -> nil
               false -> next({ref, agent})
             end
@@ -77,15 +78,61 @@ defmodule Streamz.Merge do
   defp stop({ref, agent}) do
     Agent.get(agent, fn (%{sources: sources, completed: completed}) ->
       Set.difference(sources, completed)
-    end) |> Enum.each fn(stream) ->
-      mref = Process.monitor(stream)
-      Process.unlink(stream)
-      Process.exit(stream, :kill)
-      receive do
-        {:DOWN, ^mref, _, _, :killed} ->
-      end
+    end) |> Enum.each fn({id, stream}) ->
+      Mergeable.cleanup(stream, id)
     end
     Streamz.clear_mailbox({'$merge', _, {^ref, _}})
     :ok
   end
+end
+
+defprotocol Mergeable do
+  @fallback_to_any true
+  @type id :: term
+  @spec merge(Enumerable.t, pid, reference) :: [id]
+  def merge(stream, target, ref)
+
+  @spec cleanup(Enumerable.t, id) :: :ok
+  def cleanup(stream, id)
+end
+
+defimpl Mergeable, for: Any do
+  def merge(stream, target, ref) do
+    id = spawn_link fn ->
+      stream |> Enum.each fn (el) ->
+        {:ok, :ack} = :gen.call(target, '$merge', {ref, {:value, el}}, :infinity)
+      end
+      {:ok, :ack} = :gen.call(target, '$merge', {ref, {:done, {self, stream}}}, :infinity)
+    end
+    [{id, stream}]
+  end
+
+  def cleanup(_, id) do
+    mref = Process.monitor(id)
+    Process.unlink(id)
+    Process.exit(id, :kill)
+    receive do
+      {:DOWN, ^mref, _, _, :killed} ->
+    end
+  end
+end
+
+defimpl Mergeable, for: Streamz.Merge do
+  def merge(stream, target, ref) do
+    stream.streams |> Enum.flat_map fn(str) ->
+      Mergeable.merge(str, target, ref)
+    end
+  end
+
+  def cleanup(stream, id), do: Mergeable.Any.cleanup(stream, id)
+end
+
+defimpl Enumerable, for: Streamz.Merge do
+  def reduce(stream, acc, fun) do
+    Streamz.Merge.build_merge_stream(stream).(acc, fun)
+  end
+
+  def count(_), do: {:error, __MODULE__}
+
+  def member?(_, _), do: {:error, __MODULE__}
 end

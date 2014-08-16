@@ -26,7 +26,7 @@ defmodule Streamz do
   """
   @spec merge(Enumerable.t) :: Enumerable.t
   def merge(streams) do
-    Streamz.Merge.build_merge_stream(streams)
+    Streamz.Merge.new(streams)
   end
 
   @doc """

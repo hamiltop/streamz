@@ -47,4 +47,15 @@ defmodule MergeTest do
     results = Task.await(task)
     assert results == [1,2,3,4,5,6,7,8,9,10]
   end
+
+  test "nested merges" do
+    stream_one = Stream.cycle [1,2,3]
+    stream_two = Stream.cycle [3,4,5]
+    stream_three = Streamz.merge([stream_one, stream_two])
+    stream_four = Streamz.merge([stream_three, stream_one])
+    values = stream_four |> Enum.take(20)
+    assert values |> Enum.member?(1)
+    assert values |> Enum.member?(5)
+    assert Enum.count(values) == 20
+  end
 end
