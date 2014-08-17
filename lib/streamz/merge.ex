@@ -47,40 +47,44 @@ defmodule Streamz.Merge do
     ref = make_ref
     parent = self
     agent = State.new
-    spawn_link fn ->
+    spawner = spawn_link fn ->
       ids = streams |> Enum.flat_map fn (stream) ->
         Mergeable.merge(stream, parent, ref)
       end
       State.set_sources(agent, ids)
+      receive do
+        {'$merge', from, {^ref, :cleanup}} ->
+          Agent.get(agent, fn (%{sources: sources, completed: completed}) ->
+            Set.difference(sources, completed)
+          end) |> Enum.each fn({id, stream}) ->
+            Mergeable.cleanup(stream, id)
+          end
+          :gen.reply(from, :ack)
+      end
     end
-    {ref, agent}
+    {ref, {spawner, agent}}
   end
 
   @spec next(merge_resource) :: {term, merge_resource} | nil
-  defp next({ref, agent}) do
+  defp next({ref, state = {_, agent}}) do
     receive do
       {'$merge', from, {^ref, value}} ->
+        :gen.reply from, :ack
         case value do
           {:value, value} ->
-            :gen.reply from, :ack
-            {value, {ref, agent}}
+            {value, {ref, state}}
           {:done, id} ->
-            :gen.reply from, :ack
             case State.add_completed_and_check_state(agent, id) do
               true -> nil
-              false -> next({ref, agent})
+              false -> next({ref, state})
             end
         end
     end
   end
 
   @spec stop(merge_resource) :: :ok
-  defp stop({ref, agent}) do
-    Agent.get(agent, fn (%{sources: sources, completed: completed}) ->
-      Set.difference(sources, completed)
-    end) |> Enum.each fn({id, stream}) ->
-      Mergeable.cleanup(stream, id)
-    end
+  defp stop({ref, {spawner, _}}) do
+    {:ok, :ack} = :gen.call(spawner, '$merge', {ref, :cleanup})
     Streamz.clear_mailbox({'$merge', _, {^ref, _}})
     :ok
   end
