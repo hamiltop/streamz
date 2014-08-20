@@ -99,19 +99,11 @@ defmodule Streamz do
     end
   end
 
-  @doc """
-  A helper macro for clearing out messages that match a certain pattern from an inbox.
-  """
-  defmacro clear_mailbox(pattern) do
-    quote do
-      fun1 = fn(fun2, count) ->
-        receive do
-          unquote(pattern) -> fun2.(fun2, count+1)
-        after
-          0 -> count
-        end
-      end
-      fun1.(fun1, 0)
-    end
+  def pmap(stream, fun) do
+    stream
+      |> Stream.map(fn (el) ->
+        Streamz.once(fn -> fun.(el) end)
+      end)
+      |> Streamz.merge
   end
 end
