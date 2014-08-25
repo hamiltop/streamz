@@ -42,7 +42,7 @@ defmodule MergeTest do
     1..10 |> Enum.each fn(x) ->
       :timer.sleep(10) # sufficient sleep to preserve ordering
       event = Enum.shuffle(events) |> hd
-      GenEvent.notify(event, x)
+      GenEvent.ack_notify(event, x)
     end
     results = Task.await(task)
     assert results == [1,2,3,4,5,6,7,8,9,10]
@@ -53,7 +53,7 @@ defmodule MergeTest do
     stream_two = Stream.cycle [3,4,5]
     stream_three = Streamz.merge([stream_one, stream_two])
     stream_four = Streamz.merge([stream_three, stream_one])
-    values = stream_four |> Enum.take(20)
+    values = stream_four |> Stream.drop(1000) |> Enum.take(20)
     assert values |> Enum.member?(1)
     assert values |> Enum.member?(5)
     assert Enum.count(values) == 20

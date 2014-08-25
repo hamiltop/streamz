@@ -4,8 +4,9 @@ defmodule Streamz.Merge do
   defstruct streams: []
 
   require Streamz.Merge.Helpers
+  require Connectable.Helpers
 
-  alias Streamz.Merge.Helpers, as: H
+  alias Connectable.Helpers, as: H
 
   def new(streams) do
     %__MODULE__{streams: streams}
@@ -23,48 +24,47 @@ defmodule Streamz.Merge do
 
   @spec start_stream([Enumerable.t]) :: merge_resource
   defp start_stream(streams) do
-    ref = make_ref
     parent = self
     agent = create_state
     spawner = spawn_link fn ->
-      ids = streams |> Enum.flat_map fn (stream) ->
-        Mergeable.merge(stream, parent, ref)
+      connections = streams |> Enum.flat_map fn (stream) ->
+        Connectable.connect(stream, parent)
       end
-      set_sources(agent, ids)
+      set_sources(agent, connections)
       receive do
-        H.pattern(from, ref, :cleanup) ->
+        H.pattern(from, :cleanup) ->
           Agent.get(agent, fn (%{sources: sources, completed: completed}) ->
             Set.difference(sources, completed)
-          end) |> Enum.each fn({id, stream}) ->
-            Mergeable.cleanup(stream, id)
+          end) |> Enum.each fn({stream, id}) ->
+            Connectable.disconnect(stream, id)
           end
           :gen.reply(from, :ack)
       end
     end
-    {ref, {spawner, agent}}
+    {spawner, agent}
   end
 
   @spec next(merge_resource) :: {term, merge_resource} | nil
-  defp next({ref, state = {_, agent}}) do
+  defp next(state = {_, agent}) do
     receive do
-      H.pattern(from, ref, value) ->
-        :gen.reply from, :ack
+      H.pattern(from, value) ->
+        :gen.reply from, :ok
         case value do
-          {:value, value} ->
-            {value, {ref, state}}
+          {:ack_notify, value} ->
+            {[value], state}
           {:done, id} ->
             case add_completed_and_check_state(agent, id) do
-              true -> nil
-              false -> next({ref, state})
+              true -> {:halt, state}
+              false -> next(state)
             end
         end
     end
   end
 
   @spec stop(merge_resource) :: :ok
-  defp stop({ref, {spawner, _}}) do
-    {:ok, :ack} = H.call(spawner, ref, :cleanup)
-    H.clear_mailbox(H.pattern(_, ref, _))
+  defp stop({spawner, _}) do
+    {:ok, :ack} = H.call(spawner, :cleanup)
+    Streamz.Merge.Helpers.clear_mailbox(H.pattern('$connect', _))
     :ok
   end
 
@@ -98,32 +98,6 @@ defprotocol Mergeable do
 
   @spec cleanup(Enumerable.t, id) :: :ok
   def cleanup(stream, id)
-end
-
-defimpl Mergeable, for: Any do
-
-  require Streamz.Merge.Helpers
-
-  alias Streamz.Merge.Helpers, as: H
-
-  def merge(stream, target, ref) do
-    id = spawn_link fn ->
-      stream |> Enum.each fn (el) ->
-        {:ok, :ack} = H.call(target, ref, {:value, el}, :infinity)
-      end
-      {:ok, :ack} = H.call(target, ref, {:done, {self, stream}}, :infinity)
-    end
-    [{id, stream}]
-  end
-
-  def cleanup(_, id) do
-    mref = Process.monitor(id)
-    Process.unlink(id)
-    Process.exit(id, :kill)
-    receive do
-      {:DOWN, ^mref, _, _, :killed} ->
-    end
-  end
 end
 
 defimpl Mergeable, for: Streamz.Merge do
