@@ -51,10 +51,10 @@ defmodule Streamz.Merge do
         :gen.reply from, :ack
         case value do
           {:value, value} ->
-            {value, {ref, state}}
+            {[value], {ref, state}}
           {:done, id} ->
             case add_completed_and_check_state(agent, id) do
-              true -> nil
+              true -> {:halt, {ref, state}}
               false -> next({ref, state})
             end
         end

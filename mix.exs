@@ -5,7 +5,7 @@ defmodule Streamz.Mixfile do
     [
       app: :streamz,
       version: "0.0.1",
-      elixir: "~> 0.15.0",
+      elixir: "~> 1.0.0-rc2",
       deps: deps
     ]
   end

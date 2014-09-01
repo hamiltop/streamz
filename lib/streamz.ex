@@ -99,6 +99,35 @@ defmodule Streamz do
     end
   end
 
+  @doc """
+  Remove repeated elements.
+
+  iex(1)> Streamz.dedupe([1,1,2,3,2,3,4,5,5])
+  [1,2,3,2,3,4,5]
+  """
+  @spec dedupe(Enumerable.t) :: Enumerable.t
+  def dedupe(stream) do
+    stream |> Stream.transform nil, fn
+      (last, last) -> {[], last}
+      (el, _) -> {[el], el}
+    end
+  end
+
+  @doc """
+  Spawn `n` processes, one for each element, apply `fun` to each fo them and collect the results.
+
+  Does not preserve order. If order is important, the recommended approach is to tag the elements
+  with the index and then sort.
+
+  iex(1)> Streamz.pmap(1..5, &(&1 * 2)) |> Enum.to_list
+  [2,6,4,8,10]
+
+  iex(1)> Stream.with_index(1..5))
+  ...(1)>  |> Streamz.pmap(fn ({el, i}) -> {el * 2, i} end)
+  ...(1)>  |> Enum.sort_by( &elem(&1,1) )
+  ...(1)>  |> Enum.map( &elem(&1, 0) )
+  [2,4,6,8,10]
+  """
   def pmap(stream, fun) do
     stream
       |> Stream.map(fn (el) ->

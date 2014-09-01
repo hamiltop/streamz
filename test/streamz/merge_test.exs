@@ -5,10 +5,10 @@ defmodule MergeTest do
     stream_one = Stream.cycle [1,2,3]
     stream_two = Stream.cycle [3,4,5]
     stream_three = Streamz.merge([stream_one, stream_two])
-    values = stream_three |> Enum.take(10)
+    values = stream_three |> Stream.drop(100000) |> Enum.take(20)
     assert values |> Enum.member?(1)
     assert values |> Enum.member?(5)
-    assert Enum.count(values) == 10
+    assert Enum.count(values) == 20
   end
 
   test "finite streams" do
@@ -39,6 +39,7 @@ defmodule MergeTest do
       stream = Streamz.merge(events |> Enum.map &GenEvent.stream(&1) )
       stream |> Enum.take(10)
     end
+    :timer.sleep(50)
     1..10 |> Enum.each fn(x) ->
       :timer.sleep(10) # sufficient sleep to preserve ordering
       event = Enum.shuffle(events) |> hd
@@ -53,9 +54,9 @@ defmodule MergeTest do
     stream_two = Stream.cycle [3,4,5]
     stream_three = Streamz.merge([stream_one, stream_two])
     stream_four = Streamz.merge([stream_three, stream_one])
-    values = stream_four |> Enum.take(20)
+    values = stream_four |> Stream.drop(10000) |> Enum.take(10)
     assert values |> Enum.member?(1)
     assert values |> Enum.member?(5)
-    assert Enum.count(values) == 20
+    assert Enum.count(values) == 10
   end
 end

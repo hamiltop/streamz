@@ -9,7 +9,7 @@ defmodule StreamzTest do
     task = Task.async fn ->
       Streamz.take_until(stream, cutoff) |> Enum.to_list
     end
-    :timer.sleep(10)
+    :timer.sleep(50)
     GenEvent.sync_notify(event_one, 1)
     GenEvent.sync_notify(event_one, 2)
     GenEvent.sync_notify(event_one, 3)
@@ -30,7 +30,7 @@ defmodule StreamzTest do
       |> Enum.take(4)
     end
 
-    :timer.sleep(10)
+    :timer.sleep(50)
 
     GenEvent.sync_notify(left_event, %{:color => "red", :shape => "triangle"})
     GenEvent.sync_notify(right_event, %{:color => "yellow", :shape => "square"})
@@ -53,10 +53,32 @@ defmodule StreamzTest do
     assert Enum.take(s,2) == [:foo]
   end
 
+  test "dedupe/1" do
+    result = Streamz.dedupe([1,2,2,3,2,3,3,4,1,1]) |> Enum.to_list
+    assert result == [1,2,3,2,3,4,1]
+  end
+
   test "take_and_continue/3" do
     s = 1..100 |> Streamz.take_and_continue(10, fn(list) ->
       assert list == Enum.to_list(1..10)
     end) |> Enum.take(10)
     assert s == Enum.to_list(11..20)
+  end
+
+  test "pmap/2" do
+    start = 1..50
+    result = Stream.map(start, &(&1 * 2)) |> Enum.into(HashSet.new)
+    parallel_result = Streamz.pmap(start, &(&1 * 2)) |> Enum.into(HashSet.new)
+    assert Set.equal?(result, parallel_result)
+  end
+
+  test "sorting pmap/2" do
+    start = 1..50
+    result = Stream.map(start, &(&1 * 2)) |> Enum.to_list
+    parallel_result = Stream.with_index(start)
+      |> Streamz.pmap(fn ({el, i}) -> {el*2, i} end)
+      |> Enum.sort_by( &elem(&1, 1) )
+      |> Enum.map &elem(&1, 0)
+    assert result == parallel_result
   end
 end
