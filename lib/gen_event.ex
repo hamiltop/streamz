@@ -523,7 +523,7 @@ defmodule GenEvent do
   ## Init callbacks
 
   require Record
-  Record.defrecordp :handler, [:module, :id, :state, :pid, :ref]
+  Record.defrecordp :handler, [:module, :id, :state, :pid, :ref, :fun]
 
   @doc false
   def init_it(starter, :self, name, mod, args, options) do
@@ -614,6 +614,10 @@ defmodule GenEvent do
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:add_process_handler, pid, notify}} ->
         {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_process_handler, pid, notify, fun}} ->
+        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify, fun)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -761,10 +765,10 @@ defmodule GenEvent do
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
-  defp server_add_process_handler(pid, handlers, notify) do
+  defp server_add_process_handler(pid, handlers, notify, fun \\ nil) do
     ref = Process.monitor(pid)
     handler = handler(module: GenEvent.Stream, id: pid,
-                      pid: notify, ref: ref)
+                      pid: notify, ref: ref, fun: fun)
     do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
   end
 
@@ -808,9 +812,14 @@ defmodule GenEvent do
     {handlers, streams}
   end
 
+  defp server_process_notify(mode, event, handler(state: {pid, ref}, fun: fun)) when not is_nil(fun) do
+    send pid, {self(), {self(), ref}, {mode_to_tag(mode), fun.(event)}}
+  end
+
   defp server_process_notify(mode, event, handler(state: {pid, ref})) do
     send pid, {self(), {self(), ref}, {mode_to_tag(mode), event}}
   end
+
 
   defp mode_to_tag(:ack),   do: :ack_notify
   defp mode_to_tag(:sync),  do: :sync_notify
