@@ -1,9 +1,9 @@
 Streamz
 =======
 
-## Stream all the things
+NOTE: Many of the stream sources previously in this repo have been moved into <https://github.com/hamiltop/structurez>
 
-Everything can and should be streamed. This library is an attempt to make standard Erlang/Elixir things into Streams.
+# Dataflow and Reactive Programming
 
 ## Highlights
 
@@ -44,41 +44,6 @@ result = stream |> Enum.take(1) |> hd
 ```
 
 The above example is so useful it exists as `Streamz.Task.first_completed_of/1`
-
-### `Streamz.Net.TCPClient.stream/1`
-`Streamz.Net.TCPClient.stream/1` accepts a keyword list with `:host` and `:port` set. It will connect the the host and port and supports Enumerable and Collectable. This enables a bunch of cool things.
-
-#### Connecting:
-
-```elixir
-n = Streamz.Net.TCPClient.stream([host: "localhost", port: 4444])
-```
-
-#### Reading data:
-
-```elixir
-n |> Enum.each &IO.inspect(&1)
-```
-
-#### Writing data:
-
-```elixir
-["Hello", "World"] |> Enum.into(n)
-```
-
-#### Echo Client (writes any data it receives back to the server):
-
-```elixir
-n |> Enum.into(n)
-```
-
-## Up Next
-There are tons of possibilities for Streamz. Here's what is on the current radar.
-
-- `Streamz.Net.TCPServer/1` - A server version of `Streamz.Net.TCPClient`
-- `Streamz.Net.UDPClient/1` - A UDP version of `Streamz.Net.TCPClient`
-- `Streamz.Net.UDPServer/1` - A server version of `Streamz.Net.UDPClient`
-- `Streamz.WebSockets.stream/1` - Bidirection stream for a websocket connection.
 
 More ideas are welcome. Feedback on code quality is welcomed, especially when it comes to OTP fundamentals (eg. monitoring vs linking).
 
