@@ -34,7 +34,10 @@ defprotocol EventSource do
 end
 
 defmodule EventSource.Connection do
-  defstruct pid: nil, data: nil
+  defstruct pid: nil, data: nil, source: nil
+  def remove_handler(conn) do
+    EventSource.remove_handler(conn.source, conn)
+  end
 end
 
 defimpl EventSource, for: Any do
@@ -61,7 +64,7 @@ defimpl EventSource, for: Any do
         end
       end
     end
-    [%EventSource.Connection{pid: pid}]
+    [%EventSource.Connection{source: source, pid: pid}]
   end
 
   def remove_handler(_source, %EventSource.Connection{pid: pid}) do
@@ -72,9 +75,10 @@ end
 defimpl EventSource, for: GenEvent.Stream do
   def add_handler(manager, target) do
     {:ok, ref} = :gen.call(manager.manager, target, {:add_process_handler, target, target, nil}, :infinity)
-    [%EventSource.Connection{data: %{ref: ref}}]
+    [%EventSource.Connection{source: manager, data: %{ref: ref}}]
   end
 
-  def remove_handler(manager, connection) do
+  def remove_handler(manager, conn) do
+    GenEvent.remove_handler(manager.manager, conn.data.ref, nil)
   end
 end
