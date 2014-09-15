@@ -71,7 +71,7 @@ end
 
 defimpl EventSource, for: GenEvent.Stream do
   def add_handler(manager, target) do
-    {:ok, ref} = :gen.call(manager.manager, target, {:add_process_handler, target, target}, :infinity)
+    {:ok, ref} = :gen.call(manager.manager, target, {:add_process_handler, target, target, nil}, :infinity)
     [%EventSource.Connection{data: %{ref: ref}}]
   end
 
